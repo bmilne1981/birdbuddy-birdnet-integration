@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BirdNET Audio Detections - Webster, NY</title>
+  <link rel="stylesheet" href="<%= basePath %>/style.css">
+  <style>
+    .birdnet-hero {
+      background: linear-gradient(135deg, #2d3436 0%, #3d5a80 50%, #4a7c9b 100%);
+      color: white;
+      padding: 2rem;
+      text-align: center;
+      border-bottom: 3px solid #f4a261;
+    }
+    .birdnet-hero h1 { font-size: 2rem; margin-bottom: 0.5rem; color: #fff; }
+    .birdnet-hero .subtitle { color: #ddd; font-size: 1.1rem; }
+    .birdnet-hero .station-badge {
+      display: inline-block;
+      background: rgba(244, 162, 97, 0.25);
+      border: 1px solid #f4a261;
+      border-radius: 20px;
+      padding: 4px 16px;
+      margin-top: 8px;
+      font-size: 0.85rem;
+      color: #f4d08a;
+    }
+    
+    .crossref-banner {
+      display: flex;
+      gap: 1.5rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      padding: 1.5rem;
+      background: #f8f9fa !important;
+      border-bottom: 1px solid #eee;
+    }
+    .crossref-stat {
+      text-align: center;
+      min-width: 120px;
+    }
+    .crossref-stat .number {
+      font-size: 2rem;
+      font-weight: bold;
+      color: #333;
+    }
+    .crossref-stat .label {
+      font-size: 0.85rem;
+      color: #666;
+      margin-top: 2px;
+    }
+    .crossref-stat.audio-only .number { color: #e07c4f; }
+    .crossref-stat.visual-only .number { color: #4CAF50; }
+    .crossref-stat.both .number { color: #2196F3; }
+    
+    .birdnet-nav {
+      display: flex;
+      gap: 0;
+      justify-content: center;
+      padding: 0;
+      background: #ffffff !important;
+      border-bottom: 1px solid #eee;
+    }
+    .birdnet-nav button {
+      padding: 12px 24px;
+      border: none;
+      background: none;
+      font-size: 1rem;
+      cursor: pointer;
+      color: #444;
+      font-weight: 500;
+      border-bottom: 3px solid transparent;
+      transition: all 0.2s;
+    }
+    .birdnet-nav button:hover { color: #111; background: #f8f9fa; }
+    .birdnet-nav button.active {
+      color: #e07c4f;
+      border-bottom-color: #e07c4f;
+      font-weight: 600;
+    }
+    
+    body { background: #ffffff !important; }
+    .bn-view { display: none; padding: 1.5rem; max-width: 1200px; margin: 0 auto; background: #ffffff; }
+    .bn-view.active { display: block; }
+    
+    /* Species cards */
+    .bn-species-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1rem;
+    }
+    .bn-species-card {
+      border: 1px solid #eee;
+      border-radius: 12px;
+      overflow: hidden;
+      background: white;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .bn-species-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .bn-species-card .card-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+    }
+    .bn-species-card img {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+    .bn-species-card .species-info h3 {
+      margin: 0;
+      font-size: 1.05rem;
+    }
+    .bn-species-card .species-info .sci-name {
+      font-style: italic;
+      color: #555;
+      font-size: 0.85rem;
+    }
+    .bn-species-card .card-stats {
+      display: flex;
+      justify-content: space-around;
+      padding: 8px 12px;
+      background: #f8f9fa;
+      border-top: 1px solid #eee;
+      font-size: 0.85rem;
+    }
+    .bn-species-card .card-stats span { color: #444; }
+    .bn-species-card .card-stats strong { color: #111; }
+    .bn-species-card.audio-only {
+      border-left: 4px solid #e07c4f;
+    }
+    .bn-species-card .audio-badge {
+      display: inline-block;
+      background: #e07c4f;
+      color: white;
+      font-size: 0.7rem;
+      padding: 2px 8px;
+      border-radius: 10px;
+      margin-left: 6px;
+    }
+    .bn-species-card .visual-badge {
+      display: inline-block;
+      background: #4CAF50;
+      color: white;
+      font-size: 0.7rem;
+      padding: 2px 8px;
+      border-radius: 10px;
+      margin-left: 6px;
+    }
+    
+    /* Heatmap */
+    .heatmap-container {
+      overflow-x: auto;
+    }
+    .heatmap-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+    }
+    .heatmap-table th {
+      padding: 6px 4px;
+      text-align: center;
+      font-weight: 700;
+      color: #333;
+      background: #f0f0f0;
+      position: sticky;
+      top: 0;
+    }
+    .heatmap-table td {
+      padding: 4px;
+      text-align: center;
+      min-width: 40px;
+    }
+    .heatmap-table .species-label {
+      text-align: left;
+      padding-left: 8px;
+      font-weight: 600;
+      color: #222;
+      white-space: nowrap;
+      position: sticky;
+      left: 0;
+      background: white;
+    }
+    .heatmap-cell {
+      border-radius: 3px;
+      min-width: 28px;
+      min-height: 22px;
+      display: inline-block;
+      line-height: 22px;
+      font-size: 0.75rem;
+      color: white;
+    }
+    
+    /* Recent detections feed */
+    .detection-feed {
+      max-width: 700px;
+      margin: 0 auto;
+    }
+    .detection-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      border-bottom: 1px solid #f0f0f0;
+      transition: background 0.2s;
+    }
+    .detection-item:hover { background: #f8f9fa; }
+    .detection-item img {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+    .detection-item .det-info { flex: 1; }
+    .detection-item .det-info h4 { margin: 0; font-size: 0.95rem; color: #1a1a1a; }
+    .detection-item .det-info .det-meta {
+      font-size: 0.8rem;
+      color: #555;
+    }
+    .detection-item .det-confidence {
+      font-size: 0.85rem;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 12px;
+      background: #e8f5e9;
+      color: #2e7d32;
+    }
+    .detection-item .det-confidence.high { background: #e8f5e9; color: #2e7d32; }
+    .detection-item .det-confidence.medium { background: #fff3e0; color: #e65100; }
+    .detection-item .det-confidence.low { background: #fce4ec; color: #c62828; }
+    .detection-item .det-play {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 2px solid #e07c4f;
+      background: white;
+      color: #e07c4f;
+      font-size: 1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.2s;
+    }
+    .detection-item .det-play:hover { background: #e07c4f; color: white; }
+    .detection-item .det-play.playing { background: #e07c4f; color: white; animation: pulse 1s infinite; }
+    @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.6; } }
+    
+    .back-link {
+      display: inline-block;
+      padding: 8px 16px;
+      color: #e07c4f;
+      text-decoration: none;
+      font-size: 0.9rem;
+    }
+    .back-link:hover { text-decoration: underline; }
+    
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+    .section-header h2 { margin: 0; color: #1a1a1a; font-weight: 700; }
+    
+    @media (max-width: 600px) {
+      .crossref-banner { padding: 1rem; gap: 1rem; }
+      .crossref-stat .number { font-size: 1.5rem; }
+      .bn-species-grid { grid-template-columns: 1fr; }
+      .birdnet-nav button { padding: 10px 14px; font-size: 0.9rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="birdnet-hero">
+    <a href="<%= basePath %>/" class="back-link">← Back to Bird Buddy</a>
+    <h1>🎵 BirdNET Audio Detections</h1>
+    <p class="subtitle">What we hear but don't always see — powered by BirdNET-Pi</p>
+    <div class="station-badge">📡 Station KROC · Webster, NY</div>
+  </div>
+
+  <div class="crossref-banner" id="crossref-banner">
+    <div class="crossref-stat" id="stat-combined">
+      <div class="number">-</div>
+      <div class="label">Total Species</div>
+    </div>
+    <div class="crossref-stat audio-only" id="stat-audio">
+      <div class="number">-</div>
+      <div class="label">🎵 Audio Only</div>
+    </div>
+    <div class="crossref-stat visual-only" id="stat-visual">
+      <div class="number">-</div>
+      <div class="label">📷 Feeder Only</div>
+    </div>
+    <div class="crossref-stat both" id="stat-both">
+      <div class="number">-</div>
+      <div class="label">🎵📷 Both</div>
+    </div>
+  </div>
+
+  <nav class="birdnet-nav">
+    <button class="active" data-view="live">Live Feed</button>
+    <button data-view="species">All Species</button>
+    <button data-view="heatmap">Activity Heatmap</button>
+  </nav>
+
+  <!-- Live Feed -->
+  <div id="view-live" class="bn-view active">
+    <div class="section-header">
+      <h2>Recent Detections</h2>
+      <span id="detection-count" style="color:#444;font-size:0.9rem;"></span>
+    </div>
+    <div class="detection-feed" id="detection-feed">
+      <div class="loading">Loading detections...</div>
+    </div>
+  </div>
+
+  <!-- Species View -->
+  <div id="view-species" class="bn-view">
+    <div class="section-header">
+      <h2>Species Detected</h2>
+    </div>
+    <p style="color:#444;margin-bottom:1rem;">
+      Species heard by BirdNET-Pi audio analysis. 
+      <span style="color:#e07c4f;">Red border</span> = heard but never seen at the feeder.
+    </p>
+    <div class="bn-species-grid" id="species-grid">
+      <div class="loading">Loading species...</div>
+    </div>
+  </div>
+
+  <!-- Heatmap View -->
+  <div id="view-heatmap" class="bn-view">
+    <div class="section-header">
+      <h2>Activity Heatmap</h2>
+    </div>
+    <p style="color:#444;margin-bottom:0.75rem;">
+      Audio detections by hour — see when each species is most vocal.
+    </p>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:1rem;flex-wrap:wrap;">
+      <label for="heatmap-date-select" style="font-weight:600;color:#333;font-size:0.9rem;">Date:</label>
+      <select id="heatmap-date-select" style="padding:6px 12px;border:1px solid #ddd;border-radius:8px;font-size:0.9rem;background:white;cursor:pointer;">
+        <option value="__all__">All dates (aggregated)</option>
+      </select>
+      <span id="heatmap-date-summary" style="color:#888;font-size:0.85rem;"></span>
+    </div>
+    <div class="heatmap-container" id="heatmap-container">
+      <div class="loading">Loading heatmap data...</div>
+    </div>
+  </div>
+
+  <script>
+    const BASE = window.location.pathname.replace(/\/birdnet\/?$/, '') || '';
+    
+    // Audio playback
+    let currentAudio = null;
+    let currentBtn = null;
+    
+    function playAudio(btn, url, startTime, endTime) {
+      // Stop current playback
+      if (currentAudio) {
+        currentAudio.pause();
+        currentAudio = null;
+        if (currentBtn) currentBtn.classList.remove('playing');
+        if (currentBtn === btn) { 
+          btn.textContent = '▶';
+          currentBtn = null;
+          return; 
+        }
+      }
+      
+      btn.classList.add('playing');
+      btn.textContent = '⏸';
+      currentBtn = btn;
+      
+      const audio = new Audio(url);
+      currentAudio = audio;
+      
+      audio.addEventListener('loadedmetadata', () => {
+        if (startTime) audio.currentTime = startTime;
+      });
+      
+      audio.addEventListener('timeupdate', () => {
+        if (endTime && audio.currentTime >= endTime) {
+          audio.pause();
+          btn.classList.remove('playing');
+          btn.textContent = '▶';
+          currentAudio = null;
+          currentBtn = null;
+        }
+      });
+      
+      audio.addEventListener('ended', () => {
+        btn.classList.remove('playing');
+        btn.textContent = '▶';
+        currentAudio = null;
+        currentBtn = null;
+      });
+      
+      audio.addEventListener('error', () => {
+        btn.classList.remove('playing');
+        btn.textContent = '▶';
+        btn.title = 'Audio unavailable';
+        currentAudio = null;
+        currentBtn = null;
+      });
+      
+      audio.play().catch(() => {
+        btn.classList.remove('playing');
+        btn.textContent = '▶';
+      });
+    }
+    
+    // Nav
+    document.querySelectorAll('.birdnet-nav button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.birdnet-nav button').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.bn-view').forEach(v => v.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('view-' + btn.dataset.view).classList.add('active');
+      });
+    });
+
+    // Load crossref stats
+    async function loadCrossref() {
+      try {
+        const res = await fetch(BASE + '/api/birdnet/crossref');
+        const data = await res.json();
+        document.querySelector('#stat-combined .number').textContent = data.totalCombined;
+        document.querySelector('#stat-audio .number').textContent = data.audioOnly.length;
+        document.querySelector('#stat-visual .number').textContent = data.visualOnly.length;
+        document.querySelector('#stat-both .number').textContent = data.both.length;
+        return data;
+      } catch (e) {
+        console.error('Crossref error:', e);
+      }
+    }
+
+    // Load live feed
+    async function loadDetections() {
+      try {
+        const res = await fetch(BASE + '/api/birdnet/detections?limit=50');
+        const detections = await res.json();
+        const feed = document.getElementById('detection-feed');
+        document.getElementById('detection-count').textContent = detections.length + ' detections';
+        
+        feed.innerHTML = detections.map((det, i) => {
+          const ts = new Date(det.timestamp);
+          const time = ts.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+          const conf = Math.round(det.confidence * 100);
+          const confClass = conf >= 80 ? 'high' : conf >= 60 ? 'medium' : 'low';
+          const hasAudio = det.soundscape && det.soundscape.url;
+          const audioBtn = hasAudio 
+            ? `<button class="det-play" onclick="playAudio(this, '${det.soundscape.url}', ${det.soundscape.startTime || 0}, ${det.soundscape.endTime || 3})" title="Play audio clip">▶</button>`
+            : '';
+          
+          return `<div class="detection-item">
+            ${audioBtn}
+            <img src="${det.species.thumbnailUrl}" alt="${det.species.commonName}">
+            <div class="det-info">
+              <h4>${det.species.commonName}</h4>
+              <span class="det-meta"><em>${det.species.scientificName}</em> · ${time}</span>
+            </div>
+            <span class="det-confidence ${confClass}">${conf}%</span>
+          </div>`;
+        }).join('');
+      } catch (e) {
+        document.getElementById('detection-feed').innerHTML = '<p>Error loading detections</p>';
+      }
+    }
+
+    // Load species grid
+    async function loadSpecies(crossrefData) {
+      try {
+        const res = await fetch(BASE + '/api/birdnet/species');
+        const species = await res.json();
+        const grid = document.getElementById('species-grid');
+        
+        const audioOnlyNames = crossrefData ? new Set(crossrefData.audioOnly.map(s => s.name)) : new Set();
+        
+        grid.innerHTML = species.map(sp => {
+          const isAudioOnly = audioOnlyNames.has(sp.commonName);
+          const badge = isAudioOnly 
+            ? '<span class="audio-badge">🎵 Audio Only</span>'
+            : '<span class="visual-badge">📷 Also at feeder</span>';
+          
+          return `<div class="bn-species-card ${isAudioOnly ? 'audio-only' : ''}">
+            <div class="card-header">
+              <img src="${sp.thumbnailUrl}" alt="${sp.commonName}">
+              <div class="species-info">
+                <h3>${sp.commonName} ${badge}</h3>
+                <span class="sci-name">${sp.scientificName}</span>
+              </div>
+            </div>
+            <div class="card-stats">
+              <span>Detections: <strong>${sp.detections.total}</strong></span>
+              <span>Certain: <strong>${sp.detections.almostCertain}</strong></span>
+              <span>Latest: <strong>${sp.latestDetectionAt ? new Date(sp.latestDetectionAt).toLocaleDateString() : 'N/A'}</strong></span>
+            </div>
+          </div>`;
+        }).join('');
+      } catch (e) {
+        document.getElementById('species-grid').innerHTML = '<p>Error loading species</p>';
+      }
+    }
+
+    // Heatmap data cache
+    let heatmapData = null;
+
+    function renderHeatmap(selectedDate) {
+      const container = document.getElementById('heatmap-container');
+      const summary = document.getElementById('heatmap-date-summary');
+
+      // Build the dataset to render (single day or aggregated)
+      let dataset = {}; // { hour: { species: count } }
+      let dateKeys;
+
+      if (selectedDate === '__all__') {
+        dateKeys = Object.keys(heatmapData).sort();
+        summary.textContent = dateKeys.length > 0 ? `${dateKeys.length} day${dateKeys.length > 1 ? 's' : ''} of data` : '';
+      } else {
+        dateKeys = [selectedDate];
+        summary.textContent = '';
+      }
+
+      for (const date of dateKeys) {
+        const dayData = heatmapData[date] || {};
+        for (const hour in dayData) {
+          if (!dataset[hour]) dataset[hour] = {};
+          for (const sp in dayData[hour]) {
+            dataset[hour][sp] = (dataset[hour][sp] || 0) + dayData[hour][sp];
+          }
+        }
+      }
+
+      // Collect all species and find max count
+      const allSpecies = new Set();
+      let maxCount = 0;
+      for (const hour in dataset) {
+        for (const sp in dataset[hour]) {
+          allSpecies.add(sp);
+          maxCount = Math.max(maxCount, dataset[hour][sp]);
+        }
+      }
+
+      if (allSpecies.size === 0) {
+        container.innerHTML = '<p style="color:#888;padding:1rem;">No heatmap data available for this selection.</p>';
+        return;
+      }
+
+      const speciesList = [...allSpecies].sort();
+
+      // Find hour range (at least 5–21, expand if data outside that)
+      let minHour = 5, maxHour = 21;
+      for (const h in dataset) {
+        const hi = parseInt(h);
+        if (hi < minHour) minHour = hi;
+        if (hi > maxHour) maxHour = hi;
+      }
+
+      // Build table
+      let html = '<table class="heatmap-table"><thead><tr><th>Species</th>';
+      for (let h = minHour; h <= maxHour; h++) {
+        html += `<th>${h}:00</th>`;
+      }
+      html += '</tr></thead><tbody>';
+
+      for (const sp of speciesList) {
+        // Compute row total for sorting hint
+        let rowTotal = 0;
+        for (let h = minHour; h <= maxHour; h++) {
+          rowTotal += dataset[h]?.[sp] || 0;
+        }
+        html += `<tr><td class="species-label">${sp} <span style="color:#aaa;font-size:0.75rem;font-weight:400">(${rowTotal})</span></td>`;
+        for (let h = minHour; h <= maxHour; h++) {
+          const count = dataset[h]?.[sp] || 0;
+          if (count === 0) {
+            html += '<td></td>';
+          } else {
+            const intensity = Math.min(count / Math.max(maxCount, 1), 1);
+            const r = Math.round(233 - intensity * 100);
+            const g = Math.round(69 + intensity * 50);
+            const b = Math.round(96 + intensity * 80);
+            html += `<td><span class="heatmap-cell" style="background:rgba(${r},${g},${b},${0.3 + intensity * 0.7})">${count}</span></td>`;
+          }
+        }
+        html += '</tr>';
+      }
+      html += '</tbody></table>';
+      container.innerHTML = html;
+    }
+
+    // Load heatmap
+    async function loadHeatmap() {
+      try {
+        const res = await fetch(BASE + '/api/birdnet/heatmap');
+        heatmapData = await res.json();
+
+        // Populate date selector
+        const select = document.getElementById('heatmap-date-select');
+        const dates = Object.keys(heatmapData).sort().reverse(); // newest first
+        const today = new Date().toISOString().split('T')[0];
+
+        for (const date of dates) {
+          const opt = document.createElement('option');
+          opt.value = date;
+          const d = new Date(date + 'T12:00:00');
+          opt.textContent = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+          if (date === today) {
+            opt.textContent += ' (today)';
+            opt.selected = true;
+          }
+          select.appendChild(opt);
+        }
+
+        // Default: today if available, else all
+        const defaultDate = dates.includes(today) ? today : '__all__';
+        select.value = defaultDate;
+
+        select.addEventListener('change', () => renderHeatmap(select.value));
+
+        renderHeatmap(defaultDate);
+      } catch (e) {
+        document.getElementById('heatmap-container').innerHTML = '<p>Error loading heatmap</p>';
+      }
+    }
+
+    // Init
+    (async () => {
+      const crossref = await loadCrossref();
+      loadDetections();
+      loadSpecies(crossref);
+      loadHeatmap();
+      
+      // Auto-refresh detections every 30s
+      setInterval(loadDetections, 30000);
+    })();
+  </script>
+</body>
+</html>

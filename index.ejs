@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bird Buddy Archive - Backyard Visitors</title>
+  <link rel="stylesheet" href="<%= basePath %>/style.css">
+</head>
+<body>
+  <div class="hero">
+    <div class="hero-content">
+      <h1>🐦 Bird Buddy Archive</h1>
+      <p class="tagline">A chronicle of feathered friends (and furry freeloaders)</p>
+      
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-number"><%= stats.species_count %></div>
+          <div class="stat-label">Species</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number"><%= stats.sighting_count %></div>
+          <div class="stat-label">Sightings</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number"><%= stats.photo_count %></div>
+          <div class="stat-label">Photos</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number"><%= stats.video_count %></div>
+          <div class="stat-label">Videos</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <nav class="main-nav">
+    <button class="nav-btn active" data-view="timeline">Timeline</button>
+    <button class="nav-btn" data-view="species">Species Guide</button>
+    <button class="nav-btn" data-view="charts">Migration Patterns</button>
+    <a href="<%= basePath %>/birdnet" class="nav-btn" style="text-decoration:none;">🎵 BirdNET Audio</a>
+  </nav>
+
+  <div class="container">
+    <!-- Timeline View -->
+    <div id="timeline-view" class="view active">
+      <h2>Recent Visitors</h2>
+      <div id="timeline-grid" class="timeline-grid">
+        <div class="loading">Loading sightings...</div>
+      </div>
+      <button id="load-more" class="load-more-btn">Load More</button>
+    </div>
+
+    <!-- Species View -->
+    <div id="species-view" class="view">
+      <h2>Field Guide</h2>
+      <div id="species-grid" class="species-grid">
+        <div class="loading">Loading species...</div>
+      </div>
+    </div>
+
+    <!-- Charts View -->
+    <div id="charts-view" class="view">
+      <h2>Occurrence Patterns</h2>
+      <p class="chart-description">Visualize when different species visit throughout the year</p>
+      
+      <div class="chart-controls">
+        <label>
+          <input type="radio" name="chart-group" value="day" checked> Daily
+        </label>
+        <label>
+          <input type="radio" name="chart-group" value="month"> Monthly
+        </label>
+      </div>
+      
+      <div style="position:relative;height:400px;width:100%">
+        <canvas id="occurrence-chart"></canvas>
+      </div>
+      
+      <h3>Species Timeline</h3>
+      <div style="position:relative;height:300px;width:100%">
+        <canvas id="species-timeline"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lightbox Modal -->
+  <div id="lightbox" class="lightbox">
+    <button class="lightbox-close">&times;</button>
+    <div class="lightbox-content">
+      <div class="lightbox-media">
+        <img id="lightbox-img" src="" alt="">
+        <video id="lightbox-video" controls></video>
+      </div>
+      <div class="lightbox-info">
+        <h3 id="lightbox-species"></h3>
+        <p id="lightbox-scientific" class="scientific-name"></p>
+        <p id="lightbox-timestamp" class="timestamp"></p>
+        <div id="lightbox-facts" class="facts"></div>
+        <div class="lightbox-thumbs" id="lightbox-thumbs"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script>window.BASE_PATH = '<%= basePath %>';</script>
+  <script src="<%= basePath %>/app.js"></script>
+</body>
+</html>
