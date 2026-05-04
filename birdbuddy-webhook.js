@@ -131,7 +131,7 @@ function fetchAllMedia() {
   // Call Python helper to get all media (photos + videos) from recent postcards
   try {
     const result = execSync(
-      `/usr/local/opt/python@3.12/bin/python3.12 "${path.join(__dirname, 'birdbuddy-media.py')}" --since 1`,
+      `/usr/local/opt/python@3.12/bin/python3.12 "/Users/brianmilne/clawd/scripts/birdbuddy-media.py" --since 1`,
       { timeout: 60000 }
     );
     return JSON.parse(result.toString());
